@@ -18,6 +18,7 @@
     - [ ] Complete the UI
     - [ ] Player Integration
     - [ ] Vim Keybindings
+    - [ ] Better Resize Handling
     - [ ] Most Played
     - [ ] Mouse Integration
     - [ ] Colorscheme Setting

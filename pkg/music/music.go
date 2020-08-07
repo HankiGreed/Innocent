@@ -2,6 +2,7 @@ package music
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/HankiGreed/Innocent/pkg/config"
@@ -42,21 +43,35 @@ func (m *Music) ReturnSongsInPlaylist(name string) []string {
 	return songNames
 }
 
-func (m *Music) GetNowPlaying() string {
+func (m *Music) GetNowPlaying() (string, int, string) {
 	status, err := m.Client.Status()
 	if err != nil {
-		return fmt.Sprintf("Error Occured : %s", err)
+		log.Fatalln(err)
 	}
 	song, err := m.Client.CurrentSong()
 	if err != nil {
-		return fmt.Sprintf("Error Occured : %s", err)
+		log.Fatalln(err)
+	}
+	if status["state"] == "stop" {
+		return " Nothing Playing ", 0, "No Progress"
 	}
 	songstring := " " + song["Title"] + " | " + song["Artist"] + " "
 	if status["state"] == "pause" {
 		songstring = " [Paused]" + songstring
 	}
-
-	return songstring
+	elapsed, err := strconv.ParseFloat(status["elapsed"], 64)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	total, err := strconv.ParseFloat(status["duration"], 64)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	progress := int((elapsed / total) * 100)
+	elapsedMin := strconv.Itoa(int(elapsed)/60) + "." + strconv.Itoa(int(elapsed)%60)
+	totalMin := strconv.Itoa(int(total)/60) + "." + strconv.Itoa(int(total)%60)
+	labelString := "(" + elapsedMin + "/" + totalMin + ")"
+	return songstring, progress, labelString
 }
 
 func (m *Music) ReturnStatusString() string {
@@ -77,6 +92,19 @@ func (m *Music) ReturnStatusString() string {
 	} else {
 		statusString += "Shuffle : Off, "
 	}
+	if status["volume"] == "" {
+
+		statusString = statusString + "Volume : " + "N/A"
+		return statusString
+	}
 	statusString = statusString + "Volume : " + status["volume"]
 	return statusString
+}
+
+func (m *Music) ReturnAlbums() []string {
+	return []string{"Album 1", "Album 2"}
+}
+
+func (m *Music) ReturnArtists() []string {
+	return []string{"Artist 1", "Artist 2"}
 }

@@ -1,9 +1,10 @@
 package config
 
 import (
-	"github.com/BurntSushi/toml"
 	"io/ioutil"
 	"os"
+
+	"github.com/BurntSushi/toml"
 )
 
 type Client struct {
@@ -11,11 +12,16 @@ type Client struct {
 	Port    int
 }
 
+type DatabaseConfig struct {
+	Path string
+}
+
 type Config struct {
 	MPD               Client `toml:"Client"`
 	MusicDirectory    string
 	PlaylistDirectory string
 	LyricsDirectory   string
+	DbConfig          DatabaseConfig `toml:"Database"`
 }
 
 func returnConfigFile() string {
