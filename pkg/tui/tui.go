@@ -13,16 +13,17 @@ import (
 var views = []string{" Playlists ", " Albums ", " Artists "}
 
 type UI struct {
-	Grid       *ui.Grid
-	ActiveView int
-	Mainview   *widgets.List
-	Sideview   *widgets.List
-	Songview   *widgets.Gauge
-	Searchview *widgets.Paragraph
-	Infoview   *widgets.Paragraph
-	MPD        *music.Music
-	Options    *config.Config
-	Db         *database.Database
+	Grid         *ui.Grid
+	ActiveView   int
+	Mainview     *widgets.List
+	Sideview     *widgets.List
+	Songview     *widgets.Gauge
+	Searchview   *widgets.Paragraph
+	Infoview     *widgets.Paragraph
+	MPD          *music.Music
+	Options      *config.Config
+	Db           *database.Database
+	ActiveWindow string
 }
 
 func (v *UI) InitializeInterface() {
@@ -34,10 +35,14 @@ func (v *UI) InitializeInterface() {
 	playlists := v.MPD.ReturnPlaylists()
 	v.Sideview.Rows = playlists
 	v.Sideview.Title = " Playlists "
+	v.Sideview.TextStyle = ui.NewStyle(ui.ColorRed)
+	v.Sideview.BorderStyle = ui.NewStyle(ui.ColorGreen)
+	v.ActiveWindow = "side"
 
 	v.Mainview = widgets.NewList()
 	v.Mainview.Title = " Songs "
 	v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(playlists[0])
+	v.Mainview.TextStyle = ui.NewStyle(ui.ColorRed)
 
 	v.Songview = widgets.NewGauge()
 	v.Songview.Title, v.Songview.Percent, v.Songview.Label = v.MPD.GetNowPlaying()
@@ -66,27 +71,59 @@ func (v *UI) MainLoop() {
 	ticker := time.NewTicker(time.Second).C
 	ui.Render(v.Grid)
 	uiEvents := ui.PollEvents()
+	prevKey := ""
 	for {
 		select {
 		case e := <-uiEvents:
 			switch e.ID {
-			case "q", "<C-c>":
+			case "q", "<C-c>", "<Escape>":
 				return
 			case "<Resize>":
 				payload := e.Payload.(ui.Resize)
 				v.Grid.SetRect(0, 0, payload.Width, payload.Height)
-				ui.Clear()
-				ui.Render(v.Grid)
 			case "<Tab>":
 				v.manageSideView()
-				ui.Clear()
-				ui.Render(v.Grid)
+			case "j", "<Down>":
+				v.ScrollDownCurrentView()
+			case "k", "<Up>":
+				v.ScrollUpCurrentView()
+			case "l", "<Right>":
+				v.ActiveWindow = "main"
+				v.Mainview.BorderStyle = ui.NewStyle(ui.ColorGreen)
+				v.Sideview.BorderStyle = ui.NewStyle(ui.ColorClear)
+			case "h", "<Left>":
+				v.ActiveWindow = "side"
+				v.Sideview.BorderStyle = ui.NewStyle(ui.ColorGreen)
+				v.Mainview.BorderStyle = ui.NewStyle(ui.ColorClear)
+			case "G", "End":
+				v.ScrollCurrentEnd()
+			case "g":
+				if prevKey == "g" {
+					v.ScrollCurrentStart()
+				}
+			case "<Home>":
+				v.ScrollCurrentStart()
+			case "<C-d>":
+				v.ScrollCurrentHalfDown()
+			case "<C-u>":
+				v.ScrollCurrentHalfUp()
+			case "r":
+				v.MPD.ToggleRepeat()
+			case "z":
+				v.MPD.ToggleShuffle()
+			}
+			if prevKey == "g" {
+				prevKey = ""
+			} else {
+				prevKey = e.ID
 			}
 		case <-ticker:
 			v.UpdateContent()
 			ui.Clear()
 			ui.Render(v.Grid)
 		}
+		ui.Clear()
+		ui.Render(v.Grid)
 	}
 }
 
@@ -106,5 +143,59 @@ func (v *UI) manageSideView() {
 		v.Sideview.Rows = v.MPD.ReturnAlbums()
 	case 2:
 		v.Sideview.Rows = v.MPD.ReturnArtists()
+	}
+}
+
+func (v *UI) ScrollDownCurrentView() {
+	if v.ActiveWindow == "side" {
+		v.Sideview.ScrollDown()
+		v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(v.Sideview.Rows[v.Sideview.SelectedRow])
+	} else {
+		v.Mainview.ScrollDown()
+	}
+}
+
+func (v *UI) ScrollUpCurrentView() {
+	if v.ActiveWindow == "side" {
+		v.Sideview.ScrollUp()
+		v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(v.Sideview.Rows[v.Sideview.SelectedRow])
+	} else {
+		v.Mainview.ScrollUp()
+	}
+}
+
+func (v *UI) ScrollCurrentEnd() {
+	if v.ActiveWindow == "side" {
+		v.Sideview.ScrollBottom()
+		v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(v.Sideview.Rows[v.Sideview.SelectedRow])
+	} else {
+		v.Mainview.ScrollBottom()
+	}
+}
+
+func (v *UI) ScrollCurrentStart() {
+	if v.ActiveWindow == "side" {
+		v.Sideview.ScrollTop()
+		v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(v.Sideview.Rows[v.Sideview.SelectedRow])
+	} else {
+		v.Mainview.ScrollTop()
+	}
+}
+
+func (v *UI) ScrollCurrentHalfDown() {
+	if v.ActiveWindow == "side" {
+		v.Sideview.ScrollHalfPageDown()
+		v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(v.Sideview.Rows[v.Sideview.SelectedRow])
+	} else {
+		v.Mainview.ScrollHalfPageDown()
+	}
+}
+
+func (v *UI) ScrollCurrentHalfUp() {
+	if v.ActiveWindow == "side" {
+		v.Sideview.ScrollHalfPageUp()
+		v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(v.Sideview.Rows[v.Sideview.SelectedRow])
+	} else {
+		v.Mainview.ScrollHalfPageUp()
 	}
 }

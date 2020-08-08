@@ -10,7 +10,8 @@ import (
 )
 
 type Music struct {
-	Client *mpd.Client
+	Client          *mpd.Client
+	Repeat, Shuffle bool
 }
 
 func (m *Music) ConnectToClient() error {
@@ -18,6 +19,14 @@ func (m *Music) ConnectToClient() error {
 	connectionString := configs.MPD.Address + ":" + strconv.Itoa(configs.MPD.Port)
 	client, err := mpd.Dial("tcp", connectionString)
 	m.Client = client
+	status, err := m.Client.Status()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	repeat, err := strconv.ParseBool(status["repeat"])
+	m.Repeat = repeat
+	shuffle, err := strconv.ParseBool(status["random"])
+	m.Shuffle = shuffle
 	return err
 }
 
@@ -93,12 +102,21 @@ func (m *Music) ReturnStatusString() string {
 		statusString += "Shuffle : Off, "
 	}
 	if status["volume"] == "" {
-
 		statusString = statusString + "Volume : " + "N/A"
 		return statusString
 	}
 	statusString = statusString + "Volume : " + status["volume"]
 	return statusString
+}
+
+func (m *Music) ToggleRepeat() {
+	m.Repeat = !m.Repeat
+	m.Client.Repeat(m.Repeat)
+}
+
+func (m *Music) ToggleShuffle() {
+	m.Shuffle = !m.Shuffle
+	m.Client.Random(m.Shuffle)
 }
 
 func (m *Music) ReturnAlbums() []string {
