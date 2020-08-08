@@ -126,3 +126,9 @@ func (m *Music) ReturnAlbums() []string {
 func (m *Music) ReturnArtists() []string {
 	return []string{"Artist 1", "Artist 2"}
 }
+
+func (m *Music) LoadPlaylistIntoQueue(play string) {
+	if err := m.Client.PlaylistLoad(play, -1, -1); err != nil {
+		log.Fatalln(err)
+	}
+}

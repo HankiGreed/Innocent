@@ -15,6 +15,7 @@ var views = []string{" Playlists ", " Albums ", " Artists "}
 type UI struct {
 	Grid         *ui.Grid
 	ActiveView   int
+	Queueview    *widgets.List
 	Mainview     *widgets.List
 	Sideview     *widgets.List
 	Songview     *widgets.Gauge
@@ -24,6 +25,7 @@ type UI struct {
 	Options      *config.Config
 	Db           *database.Database
 	ActiveWindow string
+	QActive      bool
 }
 
 func (v *UI) InitializeInterface() {
@@ -44,6 +46,10 @@ func (v *UI) InitializeInterface() {
 	v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(playlists[0])
 	v.Mainview.TextStyle = ui.NewStyle(ui.ColorRed)
 
+	v.Queueview = widgets.NewList()
+	v.Queueview.TextStyle = ui.NewStyle(ui.ColorRed)
+	v.Queueview.BorderStyle = ui.NewStyle(ui.ColorGreen)
+
 	v.Songview = widgets.NewGauge()
 	v.Songview.Title, v.Songview.Percent, v.Songview.Label = v.MPD.GetNowPlaying()
 	v.Songview.BarColor = ui.ColorBlue
@@ -61,8 +67,8 @@ func (v *UI) InitializeInterface() {
 	v.Db = database.ConnectToDb(v.Options.DbConfig.Path)
 	v.Grid = ui.NewGrid()
 	v.Grid.SetRect(0, 0, maxX, maxY)
-
-	v.Grid.Set(ui.NewRow(0.6/6, ui.NewCol(2.0/3, v.Searchview), ui.NewCol(1.0/3, v.Infoview)), ui.NewRow(4.8/6, ui.NewCol(1.0/5, v.Sideview), ui.NewCol(4.0/5, v.Mainview)),
+	v.QActive = true
+	v.Grid.Set(ui.NewRow(0.6/6, ui.NewCol(2.0/3, v.Searchview), ui.NewCol(1.0/3, v.Infoview)), ui.NewRow(4.8/6, ui.NewCol(1.0, v.Queueview)),
 		ui.NewRow(0.6/6, ui.NewCol(1, v.Songview)))
 }
 
@@ -111,6 +117,10 @@ func (v *UI) MainLoop() {
 				v.MPD.ToggleRepeat()
 			case "z":
 				v.MPD.ToggleShuffle()
+			case "<Space>":
+				v.ToggleQView()
+			case "a":
+				v.LoadPlaylist()
 			}
 			if prevKey == "g" {
 				prevKey = ""
@@ -197,5 +207,30 @@ func (v *UI) ScrollCurrentHalfUp() {
 		v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(v.Sideview.Rows[v.Sideview.SelectedRow])
 	} else {
 		v.Mainview.ScrollHalfPageUp()
+	}
+}
+
+func (v *UI) LoadPlaylist() {
+	if v.ActiveWindow == "side" {
+		v.MPD.LoadPlaylistIntoQueue(v.Sideview.Rows[v.Sideview.SelectedRow])
+	}
+}
+
+func (v *UI) ToggleQView() {
+	maxX, maxY := ui.TerminalDimensions()
+	if v.QActive {
+		v.QActive = false
+		v.Grid = ui.NewGrid()
+		v.Grid.SetRect(0, 0, maxX, maxY)
+
+		v.Grid.Set(ui.NewRow(0.6/6, ui.NewCol(2.0/3, v.Searchview), ui.NewCol(1.0/3, v.Infoview)), ui.NewRow(4.8/6, ui.NewCol(1.0/5, v.Sideview), ui.NewCol(4.0/5, v.Mainview)),
+			ui.NewRow(0.6/6, ui.NewCol(1, v.Songview)))
+	} else {
+		v.QActive = true
+		v.Grid = ui.NewGrid()
+		v.Grid.SetRect(0, 0, maxX, maxY)
+		v.QActive = true
+		v.Grid.Set(ui.NewRow(0.6/6, ui.NewCol(2.0/3, v.Searchview), ui.NewCol(1.0/3, v.Infoview)), ui.NewRow(4.8/6, ui.NewCol(1.0, v.Queueview)),
+			ui.NewRow(0.6/6, ui.NewCol(1, v.Songview)))
 	}
 }
