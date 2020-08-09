@@ -15,16 +15,17 @@
 
 ---
 ## Features
-    - [ ] Complete the UI
-    - [ ] Player Integration
-    - [ ] Vim Keybindings
-    - [ ] Better Resize Handling
-    - [ ] Most Played
-    - [ ] Mouse Integration
-    - [ ] Colorscheme Setting
-    - [ ] Lyrics 
-    - [ ] Dump default config feature
-    - [ ] Emojis 
+
+- [ ] Complete the UI
+- [ ] Player Integration
+- [ ] Vim Keybindings
+- [ ] Better Resize Handling
+- [ ] Most Played
+- [ ] Mouse Integration
+- [ ] Colorscheme Setting
+- [ ] Lyrics 
+- [ ] Dump default config feature
+- [ ] Emojis 
 
 
 [CodacyBadge]: https://img.shields.io/codacy/grade/81da9709fbca4fad9217a2c1a92d66f8?color=blue&logo=Codacy&style=for-the-badge 
