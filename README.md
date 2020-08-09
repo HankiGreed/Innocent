@@ -14,6 +14,16 @@
 
 </div>
 
+
+<div align="center">
+
+[![asciicast](https://asciinema.org/a/Ukacmh6XZpECi3GA7BjxzTICm.svg)](https://asciinema.org/a/Ukacmh6XZpECi3GA7BjxzTICm)
+
+<p>
+Current Features in a Sneak Peak !
+</p>
+</div>
+
 ---
 ## Features
 
