@@ -18,7 +18,7 @@
 ## Features
 
 - [ ] Complete the UI
-- [ ] Player Integration
+- [x] Player Integration
 - [x] Vim Keybindings
 - [ ] Making Keys Remappable
 - [ ] Better Resize Handling
@@ -26,7 +26,7 @@
 - [ ] Mouse Integration
 - [ ] Colorscheme Setting
 - [ ] Lyrics 
-- [ ] Dump default config feature
+- [ ] Dump default config 
 - [ ] Emojis 
 
 

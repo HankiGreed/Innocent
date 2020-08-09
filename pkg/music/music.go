@@ -162,3 +162,29 @@ func (m *Music) AddAndPlay(uri string) {
 	}
 	m.Client.PlayID(songid)
 }
+
+func (m *Music) GetCurrentQueue() ([]string, []int) {
+	var songNames []string
+	var songIDs []int
+	songs, _ := m.Client.PlaylistInfo(-1, -1)
+	for i, song := range songs {
+		songtext := fmt.Sprintf(" %3v %v ", i, song["Title"])
+		songNames = append(songNames, songtext)
+		songID, _ := strconv.ParseInt(song["Id"], 10, 32)
+		songIDs = append(songIDs, int(songID))
+	}
+	return songNames, songIDs
+}
+
+// This currently just updates underlying MPD db, It can be used to reload
+// Other stuff as well later
+func (m *Music) UpdateDatabase() {
+	m.Client.Update("")
+}
+
+func (m *Music) PlayID(id int) {
+	err := m.Client.PlayID(id)
+	if err != nil {
+		log.Fatalln(err)
+	}
+}

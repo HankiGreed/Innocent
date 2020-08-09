@@ -14,20 +14,21 @@ import (
 var views = []string{" Playlists ", " Albums ", " Artists "}
 
 type UI struct {
-	Grid         *ui.Grid
-	ActiveView   int
-	Queueview    *widgets.List
-	AllSongsView *widgets.List
-	Mainview     *widgets.List
-	Sideview     *widgets.List
-	Songview     *widgets.Gauge
-	Searchview   *widgets.Paragraph
-	Infoview     *widgets.Paragraph
-	MPD          *music.Music
-	Options      *config.Config
-	Db           *database.Database
-	ActivePane   string
-	ActiveWindow string
+	Grid                *ui.Grid
+	ActiveView          int
+	Queueview           *widgets.List
+	AllSongsView        *widgets.List
+	Mainview            *widgets.List
+	Sideview            *widgets.List
+	Songview            *widgets.Gauge
+	Searchview          *widgets.Paragraph
+	Infoview            *widgets.Paragraph
+	MPD                 *music.Music
+	Options             *config.Config
+	Db                  *database.Database
+	ActivePane          string
+	ActiveWindow        string
+	CurrentQueueSongIDs []int
 }
 
 func (v *UI) InitializeInterface() {
@@ -50,6 +51,7 @@ func (v *UI) InitializeInterface() {
 
 	v.Queueview = widgets.NewList()
 	v.Queueview.Title = " Now Playing "
+	v.Queueview.Rows, v.CurrentQueueSongIDs = v.MPD.GetCurrentQueue()
 	v.Queueview.TextStyle = ui.NewStyle(ui.ColorRed)
 	v.Queueview.BorderStyle = ui.NewStyle(ui.ColorGreen)
 
@@ -134,6 +136,8 @@ func (v *UI) MainLoop() {
 				v.MPD.StopPlaying()
 			case "<Enter>":
 				v.HandleEnter()
+			case "u":
+				v.MPD.UpdateDatabase()
 			}
 			if prevKey == "g" {
 				prevKey = ""
@@ -179,6 +183,8 @@ func (v *UI) ScrollDownCurrentView() {
 		}
 	} else if v.ActiveWindow == "AllSongs" {
 		v.AllSongsView.ScrollDown()
+	} else if v.ActiveWindow == "Queue" {
+		v.Queueview.ScrollDown()
 	}
 }
 
@@ -193,7 +199,10 @@ func (v *UI) ScrollUpCurrentView() {
 		}
 	} else if v.ActiveWindow == "AllSongs" {
 		v.AllSongsView.ScrollUp()
+	} else if v.ActiveWindow == "Queue" {
+		v.Queueview.ScrollUp()
 	}
+
 }
 
 func (v *UI) ScrollCurrentEnd() {
@@ -208,7 +217,10 @@ func (v *UI) ScrollCurrentEnd() {
 
 	} else if v.ActiveWindow == "AllSongs" {
 		v.AllSongsView.ScrollBottom()
+	} else if v.ActiveWindow == "Queue" {
+		v.Queueview.ScrollBottom()
 	}
+
 }
 
 func (v *UI) ScrollCurrentStart() {
@@ -223,7 +235,10 @@ func (v *UI) ScrollCurrentStart() {
 
 	} else if v.ActiveWindow == "AllSongs" {
 		v.AllSongsView.ScrollTop()
+	} else if v.ActiveWindow == "Queue" {
+		v.Queueview.ScrollTop()
 	}
+
 }
 
 func (v *UI) ScrollCurrentHalfDown() {
@@ -237,7 +252,10 @@ func (v *UI) ScrollCurrentHalfDown() {
 		}
 	} else if v.ActiveWindow == "AllSongs" {
 		v.AllSongsView.ScrollHalfPageDown()
+	} else if v.ActiveWindow == "Queue" {
+		v.Queueview.ScrollHalfPageDown()
 	}
+
 }
 
 func (v *UI) ScrollCurrentHalfUp() {
@@ -251,7 +269,10 @@ func (v *UI) ScrollCurrentHalfUp() {
 		}
 	} else if v.ActiveWindow == "AllSongs" {
 		v.AllSongsView.ScrollHalfPageUp()
+	} else if v.ActiveWindow == "Queue" {
+		v.Queueview.ScrollHalfPageUp()
 	}
+
 }
 
 func (v *UI) HandleAdding() {
@@ -300,5 +321,7 @@ func (v *UI) HandleEnter() {
 		v.MPD.AddAndPlay(v.AllSongsView.Rows[v.AllSongsView.SelectedRow])
 		v.AllSongsView.Rows[v.AllSongsView.SelectedRow] = "[" + v.AllSongsView.Rows[v.AllSongsView.SelectedRow] + "]" + "(fg:green)"
 		v.AllSongsView.ScrollDown()
+	} else if v.ActiveWindow == "Queue" {
+		v.MPD.PlayID(v.CurrentQueueSongIDs[v.Queueview.SelectedRow])
 	}
 }
