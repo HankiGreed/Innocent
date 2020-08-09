@@ -18,7 +18,8 @@
 
 - [ ] Complete the UI
 - [ ] Player Integration
-- [ ] Vim Keybindings
+- [x] Vim Keybindings
+- [ ] Making Keys Remappable
 - [ ] Better Resize Handling
 - [ ] Most Played
 - [ ] Mouse Integration

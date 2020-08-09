@@ -132,3 +132,25 @@ func (m *Music) LoadPlaylistIntoQueue(play string) {
 		log.Fatalln(err)
 	}
 }
+
+func (m *Music) GetAllSongs() []string {
+	songs, err := m.Client.GetFiles()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return songs
+}
+
+func (m *Music) AddToQueue(uri string) {
+	err := m.Client.Add(uri)
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func (m *Music) StopPlaying() {
+	err := m.Client.Stop()
+	if err != nil {
+		log.Fatalln(err)
+	}
+}

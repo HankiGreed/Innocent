@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/HankiGreed/Innocent/pkg/config"
@@ -16,6 +17,7 @@ type UI struct {
 	Grid         *ui.Grid
 	ActiveView   int
 	Queueview    *widgets.List
+	AllSongsView *widgets.List
 	Mainview     *widgets.List
 	Sideview     *widgets.List
 	Songview     *widgets.Gauge
@@ -24,8 +26,8 @@ type UI struct {
 	MPD          *music.Music
 	Options      *config.Config
 	Db           *database.Database
+	ActivePane   string
 	ActiveWindow string
-	QActive      bool
 }
 
 func (v *UI) InitializeInterface() {
@@ -39,7 +41,7 @@ func (v *UI) InitializeInterface() {
 	v.Sideview.Title = " Playlists "
 	v.Sideview.TextStyle = ui.NewStyle(ui.ColorRed)
 	v.Sideview.BorderStyle = ui.NewStyle(ui.ColorGreen)
-	v.ActiveWindow = "side"
+	v.ActivePane = "side"
 
 	v.Mainview = widgets.NewList()
 	v.Mainview.Title = " Songs "
@@ -47,8 +49,15 @@ func (v *UI) InitializeInterface() {
 	v.Mainview.TextStyle = ui.NewStyle(ui.ColorRed)
 
 	v.Queueview = widgets.NewList()
+	v.Queueview.Title = " Now Playing "
 	v.Queueview.TextStyle = ui.NewStyle(ui.ColorRed)
 	v.Queueview.BorderStyle = ui.NewStyle(ui.ColorGreen)
+
+	v.AllSongsView = widgets.NewList()
+	v.AllSongsView.Rows = v.MPD.GetAllSongs()
+	v.AllSongsView.Title = fmt.Sprintf(" All Songs (%v) ", len(v.AllSongsView.Rows))
+	v.AllSongsView.TextStyle = ui.NewStyle(ui.ColorRed)
+	v.AllSongsView.BorderStyle = ui.NewStyle(ui.ColorGreen)
 
 	v.Songview = widgets.NewGauge()
 	v.Songview.Title, v.Songview.Percent, v.Songview.Label = v.MPD.GetNowPlaying()
@@ -67,7 +76,7 @@ func (v *UI) InitializeInterface() {
 	v.Db = database.ConnectToDb(v.Options.DbConfig.Path)
 	v.Grid = ui.NewGrid()
 	v.Grid.SetRect(0, 0, maxX, maxY)
-	v.QActive = true
+	v.ActiveWindow = "Queue"
 	v.Grid.Set(ui.NewRow(0.6/6, ui.NewCol(2.0/3, v.Searchview), ui.NewCol(1.0/3, v.Infoview)), ui.NewRow(4.8/6, ui.NewCol(1.0, v.Queueview)),
 		ui.NewRow(0.6/6, ui.NewCol(1, v.Songview)))
 }
@@ -94,11 +103,11 @@ func (v *UI) MainLoop() {
 			case "k", "<Up>":
 				v.ScrollUpCurrentView()
 			case "l", "<Right>":
-				v.ActiveWindow = "main"
+				v.ActivePane = "main"
 				v.Mainview.BorderStyle = ui.NewStyle(ui.ColorGreen)
 				v.Sideview.BorderStyle = ui.NewStyle(ui.ColorClear)
 			case "h", "<Left>":
-				v.ActiveWindow = "side"
+				v.ActivePane = "side"
 				v.Sideview.BorderStyle = ui.NewStyle(ui.ColorGreen)
 				v.Mainview.BorderStyle = ui.NewStyle(ui.ColorClear)
 			case "G", "End":
@@ -118,9 +127,11 @@ func (v *UI) MainLoop() {
 			case "z":
 				v.MPD.ToggleShuffle()
 			case "<Space>":
-				v.ToggleQView()
+				v.HandleSpace()
 			case "a":
-				v.LoadPlaylist()
+				v.HandleAdding()
+			case "s":
+				v.MPD.StopPlaying()
 			}
 			if prevKey == "g" {
 				prevKey = ""
@@ -157,80 +168,120 @@ func (v *UI) manageSideView() {
 }
 
 func (v *UI) ScrollDownCurrentView() {
-	if v.ActiveWindow == "side" {
-		v.Sideview.ScrollDown()
-		v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(v.Sideview.Rows[v.Sideview.SelectedRow])
-	} else {
-		v.Mainview.ScrollDown()
+	if v.ActiveWindow == "Home" {
+		if v.ActivePane == "side" {
+			v.Sideview.ScrollDown()
+			v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(v.Sideview.Rows[v.Sideview.SelectedRow])
+		} else {
+			v.Mainview.ScrollDown()
+		}
+	} else if v.ActiveWindow == "AllSongs" {
+		v.AllSongsView.ScrollDown()
 	}
 }
 
 func (v *UI) ScrollUpCurrentView() {
-	if v.ActiveWindow == "side" {
-		v.Sideview.ScrollUp()
-		v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(v.Sideview.Rows[v.Sideview.SelectedRow])
-	} else {
-		v.Mainview.ScrollUp()
+
+	if v.ActiveWindow == "Home" {
+		if v.ActivePane == "side" {
+			v.Sideview.ScrollUp()
+			v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(v.Sideview.Rows[v.Sideview.SelectedRow])
+		} else {
+			v.Mainview.ScrollUp()
+		}
+	} else if v.ActiveWindow == "AllSongs" {
+		v.AllSongsView.ScrollUp()
 	}
 }
 
 func (v *UI) ScrollCurrentEnd() {
-	if v.ActiveWindow == "side" {
-		v.Sideview.ScrollBottom()
-		v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(v.Sideview.Rows[v.Sideview.SelectedRow])
-	} else {
-		v.Mainview.ScrollBottom()
+
+	if v.ActiveWindow == "Home" {
+		if v.ActivePane == "side" {
+			v.Sideview.ScrollBottom()
+			v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(v.Sideview.Rows[v.Sideview.SelectedRow])
+		} else {
+			v.Mainview.ScrollBottom()
+		}
+
+	} else if v.ActiveWindow == "AllSongs" {
+		v.AllSongsView.ScrollBottom()
 	}
 }
 
 func (v *UI) ScrollCurrentStart() {
-	if v.ActiveWindow == "side" {
-		v.Sideview.ScrollTop()
-		v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(v.Sideview.Rows[v.Sideview.SelectedRow])
-	} else {
-		v.Mainview.ScrollTop()
+
+	if v.ActiveWindow == "Home" {
+		if v.ActivePane == "side" {
+			v.Sideview.ScrollTop()
+			v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(v.Sideview.Rows[v.Sideview.SelectedRow])
+		} else {
+			v.Mainview.ScrollTop()
+		}
+
+	} else if v.ActiveWindow == "AllSongs" {
+		v.AllSongsView.ScrollTop()
 	}
 }
 
 func (v *UI) ScrollCurrentHalfDown() {
-	if v.ActiveWindow == "side" {
-		v.Sideview.ScrollHalfPageDown()
-		v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(v.Sideview.Rows[v.Sideview.SelectedRow])
-	} else {
-		v.Mainview.ScrollHalfPageDown()
+
+	if v.ActiveWindow == "Home" {
+		if v.ActivePane == "side" {
+			v.Sideview.ScrollHalfPageDown()
+			v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(v.Sideview.Rows[v.Sideview.SelectedRow])
+		} else {
+			v.Mainview.ScrollHalfPageDown()
+		}
+	} else if v.ActiveWindow == "AllSongs" {
+		v.AllSongsView.ScrollHalfPageDown()
 	}
 }
 
 func (v *UI) ScrollCurrentHalfUp() {
-	if v.ActiveWindow == "side" {
-		v.Sideview.ScrollHalfPageUp()
-		v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(v.Sideview.Rows[v.Sideview.SelectedRow])
-	} else {
-		v.Mainview.ScrollHalfPageUp()
+
+	if v.ActiveWindow == "Home" {
+		if v.ActivePane == "side" {
+			v.Sideview.ScrollHalfPageUp()
+			v.Mainview.Rows = v.MPD.ReturnSongsInPlaylist(v.Sideview.Rows[v.Sideview.SelectedRow])
+		} else {
+			v.Mainview.ScrollHalfPageUp()
+		}
+	} else if v.ActiveWindow == "AllSongs" {
+		v.AllSongsView.ScrollHalfPageUp()
 	}
 }
 
-func (v *UI) LoadPlaylist() {
-	if v.ActiveWindow == "side" {
-		v.MPD.LoadPlaylistIntoQueue(v.Sideview.Rows[v.Sideview.SelectedRow])
+func (v *UI) HandleAdding() {
+
+	if v.ActiveWindow == "Home" {
+		if v.ActivePane == "side" {
+			v.MPD.LoadPlaylistIntoQueue(v.Sideview.Rows[v.Sideview.SelectedRow])
+		}
+	} else if v.ActiveWindow == "AllSongs" {
+		v.MPD.AddToQueue(v.AllSongsView.Rows[v.AllSongsView.SelectedRow])
 	}
 }
 
-func (v *UI) ToggleQView() {
+func (v *UI) HandleSpace() {
 	maxX, maxY := ui.TerminalDimensions()
-	if v.QActive {
-		v.QActive = false
+	if v.ActiveWindow == "AllSongs" {
+		v.ActiveWindow = "Home"
 		v.Grid = ui.NewGrid()
 		v.Grid.SetRect(0, 0, maxX, maxY)
-
 		v.Grid.Set(ui.NewRow(0.6/6, ui.NewCol(2.0/3, v.Searchview), ui.NewCol(1.0/3, v.Infoview)), ui.NewRow(4.8/6, ui.NewCol(1.0/5, v.Sideview), ui.NewCol(4.0/5, v.Mainview)),
 			ui.NewRow(0.6/6, ui.NewCol(1, v.Songview)))
-	} else {
-		v.QActive = true
+	} else if v.ActiveWindow == "Home" {
+		v.ActiveWindow = "Queue"
 		v.Grid = ui.NewGrid()
 		v.Grid.SetRect(0, 0, maxX, maxY)
-		v.QActive = true
 		v.Grid.Set(ui.NewRow(0.6/6, ui.NewCol(2.0/3, v.Searchview), ui.NewCol(1.0/3, v.Infoview)), ui.NewRow(4.8/6, ui.NewCol(1.0, v.Queueview)),
+			ui.NewRow(0.6/6, ui.NewCol(1, v.Songview)))
+	} else if v.ActiveWindow == "Queue" {
+		v.ActiveWindow = "AllSongs"
+		v.Grid = ui.NewGrid()
+		v.Grid.SetRect(0, 0, maxX, maxY)
+		v.Grid.Set(ui.NewRow(0.6/6, ui.NewCol(2.0/3, v.Searchview), ui.NewCol(1.0/3, v.Infoview)), ui.NewRow(4.8/6, ui.NewCol(1.0, v.AllSongsView)),
 			ui.NewRow(0.6/6, ui.NewCol(1, v.Songview)))
 	}
 }
