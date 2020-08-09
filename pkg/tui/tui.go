@@ -132,6 +132,8 @@ func (v *UI) MainLoop() {
 				v.HandleAdding()
 			case "s":
 				v.MPD.StopPlaying()
+			case "<Enter>":
+				v.HandleEnter()
 			}
 			if prevKey == "g" {
 				prevKey = ""
@@ -253,13 +255,14 @@ func (v *UI) ScrollCurrentHalfUp() {
 }
 
 func (v *UI) HandleAdding() {
-
 	if v.ActiveWindow == "Home" {
 		if v.ActivePane == "side" {
 			v.MPD.LoadPlaylistIntoQueue(v.Sideview.Rows[v.Sideview.SelectedRow])
 		}
 	} else if v.ActiveWindow == "AllSongs" {
 		v.MPD.AddToQueue(v.AllSongsView.Rows[v.AllSongsView.SelectedRow])
+		v.AllSongsView.Rows[v.AllSongsView.SelectedRow] = "[" + v.AllSongsView.Rows[v.AllSongsView.SelectedRow] + "]" + "(fg:green)"
+		v.AllSongsView.ScrollDown()
 	}
 }
 
@@ -283,5 +286,19 @@ func (v *UI) HandleSpace() {
 		v.Grid.SetRect(0, 0, maxX, maxY)
 		v.Grid.Set(ui.NewRow(0.6/6, ui.NewCol(2.0/3, v.Searchview), ui.NewCol(1.0/3, v.Infoview)), ui.NewRow(4.8/6, ui.NewCol(1.0, v.AllSongsView)),
 			ui.NewRow(0.6/6, ui.NewCol(1, v.Songview)))
+	}
+}
+
+func (v *UI) HandleEnter() {
+	if v.ActiveWindow == "Home" {
+		if v.ActivePane == "side" {
+			v.MPD.Client.Clear()
+			v.MPD.LoadPlaylistIntoQueue(v.Sideview.Rows[v.Sideview.SelectedRow])
+			v.MPD.Client.Play(-1)
+		}
+	} else if v.ActiveWindow == "AllSongs" {
+		v.MPD.AddAndPlay(v.AllSongsView.Rows[v.AllSongsView.SelectedRow])
+		v.AllSongsView.Rows[v.AllSongsView.SelectedRow] = "[" + v.AllSongsView.Rows[v.AllSongsView.SelectedRow] + "]" + "(fg:green)"
+		v.AllSongsView.ScrollDown()
 	}
 }

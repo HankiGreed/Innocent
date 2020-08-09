@@ -154,3 +154,11 @@ func (m *Music) StopPlaying() {
 		log.Fatalln(err)
 	}
 }
+
+func (m *Music) AddAndPlay(uri string) {
+	songid, err := m.Client.AddID(uri, -1)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	m.Client.PlayID(songid)
+}
