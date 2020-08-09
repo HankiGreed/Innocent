@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/HankiGreed/Innocent/pkg/config"
-	"github.com/HankiGreed/Innocent/pkg/database"
 	"github.com/HankiGreed/Innocent/pkg/music"
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
@@ -25,7 +24,6 @@ type UI struct {
 	Infoview            *widgets.Paragraph
 	MPD                 *music.Music
 	Options             *config.Config
-	Db                  *database.Database
 	ActivePane          string
 	ActiveWindow        string
 	CurrentQueueSongIDs []int
@@ -75,7 +73,6 @@ func (v *UI) InitializeInterface() {
 
 	v.Options = config.ReadConfig()
 
-	v.Db = database.ConnectToDb(v.Options.DbConfig.Path)
 	v.Grid = ui.NewGrid()
 	v.Grid.SetRect(0, 0, maxX, maxY)
 	v.ActiveWindow = "Queue"
@@ -298,6 +295,7 @@ func (v *UI) HandleSpace() {
 	} else if v.ActiveWindow == "Home" {
 		v.ActiveWindow = "Queue"
 		v.Grid = ui.NewGrid()
+		v.Queueview.Rows, v.CurrentQueueSongIDs = v.MPD.GetCurrentQueue()
 		v.Grid.SetRect(0, 0, maxX, maxY)
 		v.Grid.Set(ui.NewRow(0.6/6, ui.NewCol(2.0/3, v.Searchview), ui.NewCol(1.0/3, v.Infoview)), ui.NewRow(4.8/6, ui.NewCol(1.0, v.Queueview)),
 			ui.NewRow(0.6/6, ui.NewCol(1, v.Songview)))

@@ -46,7 +46,12 @@ func (m *Music) ReturnSongsInPlaylist(name string) []string {
 	var songNames []string
 	songs, _ := m.Client.PlaylistContents(name)
 	for i, song := range songs {
-		songtext := fmt.Sprintf(" %3v %v ", i, song["Title"])
+		songtext := ""
+		if len(song["Title"]) > 30 {
+			songtext = fmt.Sprintf(" %3v %-30v - %v ", i, song["Title"][:27]+"...", song["Artist"])
+		} else {
+			songtext = fmt.Sprintf(" %3v %-30v - %v ", i, song["Title"], song["Artist"])
+		}
 		songNames = append(songNames, songtext)
 	}
 	return songNames
@@ -168,7 +173,12 @@ func (m *Music) GetCurrentQueue() ([]string, []int) {
 	var songIDs []int
 	songs, _ := m.Client.PlaylistInfo(-1, -1)
 	for i, song := range songs {
-		songtext := fmt.Sprintf(" %3v %v ", i, song["Title"])
+		songtext := ""
+		if len(song["Title"]) > 30 {
+			songtext = fmt.Sprintf(" %3v %-30v - %v ", i, song["Title"][:27]+"...", song["Artist"])
+		} else {
+			songtext = fmt.Sprintf(" %3v %-30v - %v ", i, song["Title"], song["Artist"])
+		}
 		songNames = append(songNames, songtext)
 		songID, _ := strconv.ParseInt(song["Id"], 10, 32)
 		songIDs = append(songIDs, int(songID))
