@@ -1,5 +1,8 @@
-<div align="center">
+
 <div style="float : left"><img src="./logo.png" width="100" /></div>
+    
+    
+    <div align="center">
     <h1>Innocent</h1>
     <h3>Innocent is an <a href="https://musicpd.org"><code>MPD</code></a> powered Complete Music Player written in <a href="https://golang.org"><code>Go</code></a></h3>
 </div>
