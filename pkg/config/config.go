@@ -2,9 +2,10 @@ package config
 
 import (
 	"io/ioutil"
+	"log"
 	"os"
 
-	"github.com/BurntSushi/toml"
+	"github.com/pelletier/go-toml"
 )
 
 type Client struct {
@@ -24,7 +25,7 @@ type Config struct {
 	DbConfig          DatabaseConfig `toml:"Database"`
 }
 
-func returnConfigFile() string {
+func returnConfigDir() string {
 	configDir := os.Getenv("XDG_CONFIG_HOME")
 	if configDir == "" {
 		if homeDir := os.Getenv("HOME"); homeDir == "" {
@@ -33,18 +34,18 @@ func returnConfigFile() string {
 			configDir = homeDir + "/" + ".config/"
 		}
 	}
-	return configDir + "innocent/config.toml"
+	return configDir + "innocent/"
+}
+func returnConfigFile() string {
+	return returnConfigDir() + "config.toml"
 }
 
 func ReadConfig() *Config {
 	var config Config
+	dumpDefaultConfig()
 	configFile := returnConfigFile()
-	fileContent, err := ioutil.ReadFile(configFile)
-	if err == nil {
-		if _, err = toml.Decode(string(fileContent), &config); err != nil {
-			return &Config{}
-		}
-	}
+	fileContent, _ := ioutil.ReadFile(configFile)
+	toml.Unmarshal(fileContent, &config)
 	return &config
 }
 
@@ -54,4 +55,31 @@ func checkIfConfigExists() bool {
 		return false
 	}
 	return true
+}
+
+func getDefaultConfig() Config {
+	return Config{
+		MusicDirectory:    "~/Music",
+		PlaylistDirectory: "~/.mpd/playlists",
+		LyricsDirectory:   "~/.mpd/lyrics",
+		MPD: Client{
+			Address: "localhost",
+			Port:    6600,
+		},
+		DbConfig: DatabaseConfig{
+			Path: "~/.innocent/db.sqlite",
+		},
+	}
+}
+
+func dumpDefaultConfig() {
+	if !checkIfConfigExists() {
+		config := getDefaultConfig()
+		os.MkdirAll(returnConfigDir(), 0766)
+		bytesConfig, err := toml.Marshal(config)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		ioutil.WriteFile(returnConfigFile(), bytesConfig, 0744)
+	}
 }
