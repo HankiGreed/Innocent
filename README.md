@@ -36,7 +36,7 @@ Current Features in a Sneak Peak !
 - [ ] Mouse Integration
 - [ ] Colorscheme Setting
 - [ ] Lyrics 
-- [ ] Dump default config 
+- [x] Dump default config 
 - [ ] Emojis 
 
 
