@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/HankiGreed/Innocent/pkg/tui"
-	ui "github.com/gizak/termui/v3"
+	ui "github.com/HankiGreed/termui/v3"
 )
 
 func main() {

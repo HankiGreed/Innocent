@@ -36,6 +36,7 @@ func returnConfigDir() string {
 	}
 	return configDir + "innocent/"
 }
+
 func returnConfigFile() string {
 	return returnConfigDir() + "config.toml"
 }
@@ -58,16 +59,20 @@ func checkIfConfigExists() bool {
 }
 
 func getDefaultConfig() Config {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatalln("Could not fetch the current user's home directory")
+	}
 	return Config{
-		MusicDirectory:    "~/Music",
-		PlaylistDirectory: "~/.mpd/playlists",
-		LyricsDirectory:   "~/.mpd/lyrics",
+		MusicDirectory:    homeDir + "/Music",
+		PlaylistDirectory: homeDir + "/.mpd/playlists",
+		LyricsDirectory:   homeDir + "/.mpd/lyrics",
 		MPD: Client{
 			Address: "localhost",
 			Port:    6600,
 		},
 		DbConfig: DatabaseConfig{
-			Path: "~/.innocent/db.sqlite",
+			Path: homeDir + "/.innocent/db.sqlite",
 		},
 	}
 }

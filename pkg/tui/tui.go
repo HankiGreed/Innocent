@@ -1,13 +1,13 @@
 package tui
 
 import (
-	"fmt"
+	"strings"
 	"time"
 
 	"github.com/HankiGreed/Innocent/pkg/config"
 	"github.com/HankiGreed/Innocent/pkg/music"
-	ui "github.com/gizak/termui/v3"
-	"github.com/gizak/termui/v3/widgets"
+	ui "github.com/HankiGreed/termui/v3"
+	"github.com/HankiGreed/termui/v3/widgets"
 )
 
 var views = []string{" Playlists ", " Albums ", " Artists "}
@@ -16,7 +16,7 @@ type UI struct {
 	Grid                *ui.Grid
 	ActiveView          int
 	Queueview           *widgets.List
-	AllSongsView        *widgets.List
+	AllSongsView        *widgets.Tree
 	Mainview            *widgets.List
 	Sideview            *widgets.List
 	Songview            *widgets.Gauge
@@ -27,6 +27,7 @@ type UI struct {
 	ActivePane          string
 	ActiveWindow        string
 	CurrentQueueSongIDs []int
+	CurrentTreePath     string
 }
 
 func (v *UI) InitializeInterface() {
@@ -35,6 +36,9 @@ func (v *UI) InitializeInterface() {
 	v.Sideview = widgets.NewList()
 	v.MPD = &music.Music{}
 	v.MPD.ConnectToClient()
+
+	v.Options = config.ReadConfig()
+
 	playlists := v.MPD.ReturnPlaylists()
 	v.Sideview.Rows = playlists
 	v.Sideview.Title = " Playlists "
@@ -53,9 +57,9 @@ func (v *UI) InitializeInterface() {
 	v.Queueview.TextStyle = ui.NewStyle(ui.ColorRed)
 	v.Queueview.BorderStyle = ui.NewStyle(ui.ColorGreen)
 
-	v.AllSongsView = widgets.NewList()
-	v.AllSongsView.Rows = v.MPD.GetAllSongs()
-	v.AllSongsView.Title = fmt.Sprintf(" All Songs (%v) ", len(v.AllSongsView.Rows))
+	v.AllSongsView = widgets.NewTree()
+	v.AllSongsView.Title = " All Songs "
+	v.AllSongsView.SetNodes(getTreeNodesFromDirectoryListing(v.Options.MusicDirectory))
 	v.AllSongsView.TextStyle = ui.NewStyle(ui.ColorRed)
 	v.AllSongsView.BorderStyle = ui.NewStyle(ui.ColorGreen)
 
@@ -70,8 +74,6 @@ func (v *UI) InitializeInterface() {
 	v.Infoview = widgets.NewParagraph()
 	v.Infoview.Title = " Status "
 	v.Infoview.Text = v.MPD.ReturnStatusString()
-
-	v.Options = config.ReadConfig()
 
 	v.Grid = ui.NewGrid()
 	v.Grid.SetRect(0, 0, maxX, maxY)
@@ -278,8 +280,7 @@ func (v *UI) HandleAdding() {
 			v.MPD.LoadPlaylistIntoQueue(v.Sideview.Rows[v.Sideview.SelectedRow])
 		}
 	} else if v.ActiveWindow == "AllSongs" {
-		v.MPD.AddToQueue(v.AllSongsView.Rows[v.AllSongsView.SelectedRow])
-		v.AllSongsView.Rows[v.AllSongsView.SelectedRow] = "[" + v.AllSongsView.Rows[v.AllSongsView.SelectedRow] + "]" + "(fg:green)"
+		v.MPD.AddToQueue(v.CurrentTreePath + "/" + v.AllSongsView.SelectedNode().Value.String())
 		v.AllSongsView.ScrollDown()
 	}
 }
@@ -316,9 +317,31 @@ func (v *UI) HandleEnter() {
 			v.MPD.Client.Play(-1)
 		}
 	} else if v.ActiveWindow == "AllSongs" {
-		v.MPD.AddAndPlay(v.AllSongsView.Rows[v.AllSongsView.SelectedRow])
-		v.AllSongsView.Rows[v.AllSongsView.SelectedRow] = "[" + v.AllSongsView.Rows[v.AllSongsView.SelectedRow] + "]" + "(fg:green)"
-		v.AllSongsView.ScrollDown()
+
+		if !v.AllSongsView.SelectedNode().Expanded {
+			if v.AllSongsView.SelectedNode().Level == 0 {
+				v.CurrentTreePath = ""
+			}
+			if v.CurrentTreePath == "" {
+				v.CurrentTreePath += v.AllSongsView.SelectedNode().Value.String()
+			} else {
+				v.CurrentTreePath += ("/" + v.AllSongsView.SelectedNode().Value.String())
+			}
+			v.AllSongsView.SelectedNode().Nodes = getTreeNodesFromDirectoryListing(v.Options.MusicDirectory + "/" + v.CurrentTreePath)
+			v.AllSongsView.ToggleExpand()
+		} else {
+			if v.CurrentTreePath != "" {
+				if ind := strings.LastIndex(v.CurrentTreePath, "/"); ind != -1 {
+					if ind == len(v.CurrentTreePath)-1 {
+						v.CurrentTreePath = ""
+					}
+					v.CurrentTreePath = v.CurrentTreePath[:ind]
+				} else {
+					v.CurrentTreePath = ""
+				}
+			}
+			v.AllSongsView.ToggleExpand()
+		}
 	} else if v.ActiveWindow == "Queue" {
 		v.MPD.PlayID(v.CurrentQueueSongIDs[v.Queueview.SelectedRow])
 	}
